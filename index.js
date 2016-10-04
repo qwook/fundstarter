@@ -1,52 +1,51 @@
-var express = require('express')
-var app = express()
-var fs = require('fs');
 
+const http = require('http'),
+      fs   = require('fs'),
+      path = require('path');
 
-app.set('port', (process.env.PORT || 8080))
-//app.use(express.static(__dirname + '/public'))
+const port = process.env.PORT || 8080;
+const indexFilePath = path.join(__dirname, 'public', 'index.html');
 
-//__dirname returns the directory that the currently executing script is in.
+const server = http.createServer( (req, res) => {
 
-app.get('/', function(request, response) {
-    response.sendFile('public/index.html',{root:__dirname})
+    var url = req.url.toLowerCase();
 
-/* sends an entire HTTP response to the client,                                                                                                                                     
- including headers and content,                                                                                                                                                     
- which is why you can only call once*/
-
-})
-
-// Part 1
-
-app.get('/readFileSync', function(request, response) {
-    response.send(fs.readFileSync('public/index.html', 'utf8'));
-});
-
-app.get('/readFile', function(request, response) {
-    fs.readFile('public/index.html', 'utf8', function(err, body) {
-      response.send(body);
-    })
-});
-
-app.get('/fsOpen', function(request, response) {
-    fs.stat('public/index.html', function(err, stats) {
-        if (!err && stats.isFile()) {
-            console.log(stats.size);
-            var buff = new Buffer (stats.size);
-            fs.open('public/index.html', 'r', function(err, fd) {
-                fs.read(fd, buff, 0, stats.size, null, function(err, read, buffer) {
-                    if (!err)
-                        response.send(buff.toString());
-                    else
-                        response.send(err);
+    if (url == "/") {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.end( fs.readFileSync(indexFilePath, 'utf8') );
+    } else if (url == "/readfile") {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        fs.readFile(indexFilePath, 'utf8', function(err, body) {
+          res.end(body);
+        })
+    } else if (url == "/fsopen") {
+        fs.stat(indexFilePath, function(err, stats) {
+            if (!err && stats.isFile()) {
+                console.log(stats.size);
+                var buff = new Buffer (stats.size);
+                fs.open(indexFilePath, 'r', function(err, fd) {
+                    fs.read(fd, buff, 0, stats.size, null, function(err, read, buffer) {
+                        if (!err) {
+                            res.writeHead(200, {'Content-Type': 'text/html'});
+                            res.end(buff.toString());
+                        } else {
+                            res.writeHead(500, {'Content-Type': 'text/html'});
+                            res.end(err);
+                        }
+                    });
                 });
-            });
-        } else
-            response.send(err);
-    });
-});
+            } else {
+                res.writeHead(500, {'Content-Type': 'text/html'});
+                res.end(err);
+            }
+        });
+    } else {
+        res.writeHead(404, {'Content-Type': 'text/html'});
+        res.end(`<h1>404 error.</h1>`);
+    }
 
-app.listen(app.get('port'), function() {
-  console.log("Node app is running at :" + app.get('port'))
-})
+} );
+
+server.listen(port, () => {
+    console.log(`Server running on ${port}`);
+});
