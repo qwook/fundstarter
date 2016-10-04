@@ -29,6 +29,24 @@ app.get('/readFile', function(request, response) {
     })
 });
 
+app.get('/fsOpen', function(request, response) {
+    fs.stat('public/index.html', function(err, stats) {
+        if (!err && stats.isFile()) {
+            console.log(stats.size);
+            var buff = new Buffer (stats.size);
+            fs.open('public/index.html', 'r', function(err, fd) {
+                fs.read(fd, buff, 0, stats.size, null, function(err, read, buffer) {
+                    if (!err)
+                        response.send(buff.toString());
+                    else
+                        response.send(err);
+                });
+            });
+        } else
+            response.send(err);
+    });
+});
+
 app.listen(app.get('port'), function() {
   console.log("Node app is running at :" + app.get('port'))
 })
